@@ -67,6 +67,30 @@ static bool IsRemoteAddressOnLocalSubnet( const netadr_t &localAddr, int nPrefix
     return false;
 }
 
+// Interface sockets are bound to a single address family.  A server of a
+// different family can't be reached from them.  Returns the index of the first
+// server after idxCurrent with the same family as localAddr, or -1.
+// bWrapAround allows for keepalive rotation as it wraps around to the
+// start of the list (ex: 0, 1, 2, 3, with idxCurrent as 2 will check 3, 0, 1, then 2).
+// Otherwise it stops at the end (ex: 0, 1, 2, 3, with idxCurrent as 3, will return -1).
+static int FindNextServerForInterface( const std_vector<netadr_t> &vecServers, int idxCurrent, const netadr_t &localAddr, bool bWrapAround )
+{
+    if ( idxCurrent < 0 )
+        return -1;
+
+    const int nServers = len( vecServers );
+    const int nToCheck = bWrapAround ? nServers : nServers - idxCurrent - 1;
+
+    for ( int i = 0; i < nToCheck; ++i )
+    {
+        const int idx = ( idxCurrent + 1 + i ) % nServers;
+        if ( vecServers[idx].GetType() == localAddr.GetType() )
+            return idx;
+    }
+
+    return -1;
+}
+
 
 
 /* After the STUN header are zero or more attributes.  Each attribute
@@ -2090,8 +2114,8 @@ void CSteamNetworkingICESession::STUNRequestCallback_AllocateRelay( const RecvST
 
     // Timed out -- try the next TURN server if available.
     const int nTURNServerIdx = index_of( m_vecTURNServers, info.m_pRequest->m_remoteAddr );
-    const int nNextTURNServerIdx = nTURNServerIdx + 1;
-    if ( nTURNServerIdx < 0 || nNextTURNServerIdx >= len( m_vecTURNServers ) )
+    const int nNextTURNServerIdx = FindNextServerForInterface( m_vecTURNServers, nTURNServerIdx, pIntf->m_boundAddr, false );
+    if ( nNextTURNServerIdx < 0 )
     {
         // Exhausted all TURN servers. Mark failed.
         pIntf->m_addrTURNServer = info.m_pRequest->m_remoteAddr;

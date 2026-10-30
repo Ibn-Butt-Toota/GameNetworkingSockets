@@ -498,6 +498,19 @@ FAILURE_TEST_CASES = [
             },
             expected_candidates=( _CAND_NAT_NO_TURN, _CAND_NAT_NO_TURN ) ) ),
 
+    # The dead TURN server is followed by an IPv6 one, but the adapters are IPv4 only.
+    # Failover must skip servers of the other address family, so there is one allocate
+    # attempt and then relay discovery gives up.
+    ( 'TURN unreachable, other server is a different address family (symmetric NAT)',
+      _nat( _SRV_INT, _SRV_GW, 'symmetric' ),
+      _nat( _CLI_INT, _CLI_GW, 'symmetric' ),
+      dict( turn='%s,[%s]:%d' % ( _DEAD_SERVER, g_stun_ipv6, g_stun_port ),
+            expected_counters={
+                'allocate_send':      (1, 1),
+                'allocate_retx':      (4, 4),
+            },
+            expected_candidates=( _CAND_NAT_NO_TURN, _CAND_NAT_NO_TURN ) ) ),
+
     # TURN wrong password: the server sends a 401 challenge; the client retries with a
     # bad HMAC (wrong password) and gets a second 401, marking relay as failed.
     # allocate_send=2: initial (no auth) + one retry (wrong credentials).
