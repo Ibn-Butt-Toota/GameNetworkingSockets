@@ -2363,7 +2363,9 @@ void CSteamNetworkingICESession::STUNRequestCallback_ServerReflexiveKeepAlive( c
         return;
 
     const int nSTUNServerIdx = std::max( 0, index_of( m_vecSTUNServers, info.m_pRequest->m_remoteAddr ) );
-    const int nNextSTUNServerIdx = ( nSTUNServerIdx + 1 ) % len( m_vecSTUNServers );
+    const int nNextSTUNServerIdx = FindNextServerForInterface( m_vecSTUNServers, nSTUNServerIdx, pIntf->m_boundAddr, true );
+    if ( nNextSTUNServerIdx < 0 )
+        return;
     pIntf->QueueBindRequest( m_vecSTUNServers[ nNextSTUNServerIdx ], &CSteamNetworkingICESession::STUNRequestCallback_ServerReflexiveKeepAlive, m_nEncoding );
 }
 
