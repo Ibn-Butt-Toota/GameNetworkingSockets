@@ -2327,8 +2327,8 @@ void CSteamNetworkingICESession::STUNRequestCallback_ServerReflexiveCandidate( c
 
     // Timed out to this STUN server -- try the next one if available.
     const int nSTUNServerIdx = index_of( m_vecSTUNServers, info.m_pRequest->m_remoteAddr );
-    const int nNextSTUNServerIdx = nSTUNServerIdx + 1;
-    if ( nSTUNServerIdx < 0 || nNextSTUNServerIdx >= len( m_vecSTUNServers ) )
+    const int nNextSTUNServerIdx = FindNextServerForInterface( m_vecSTUNServers, nSTUNServerIdx, pIntf->m_boundAddr, false );
+    if ( nNextSTUNServerIdx < 0 )
     {
         // Exhausted all STUN servers.  Mark failed so Think_DiscoverServerReflexiveCandidates
         // does not retry this interface indefinitely.
@@ -2338,6 +2338,7 @@ void CSteamNetworkingICESession::STUNRequestCallback_ServerReflexiveCandidate( c
     }
 
     // Try the next server
+    ++TEST_ICE_ctr_srflx_send;
     pIntf->QueueBindRequest( m_vecSTUNServers[nNextSTUNServerIdx], &CSteamNetworkingICESession::STUNRequestCallback_ServerReflexiveCandidate, m_nEncoding );
 }
 

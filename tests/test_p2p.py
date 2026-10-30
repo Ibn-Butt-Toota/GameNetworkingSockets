@@ -457,6 +457,19 @@ FAILURE_TEST_CASES = [
             expected_counters={ 'binding_req_retx': (4, 4) },
             expected_candidates=( {'host': 1}, {'host': 1} ) ) ),
 
+    # The dead STUN server is followed by an IPv6 one, but the adapters are IPv4 only.
+    # Failover must skip servers of the other address family, so there is one srflx
+    # attempt and then discovery gives up.
+    ( 'STUN unavailable, other server is a different address family',
+      _nat( _SRV_INT, _SRV_GW, 'full-cone' ),
+      _nat( _CLI_INT, _CLI_GW, 'full-cone' ),
+      dict( stun='%s,[%s]:%d' % ( _DEAD_SERVER, g_stun_ipv6, g_stun_port ), turn=None,
+            expected_counters={
+                'srflx_send':         (1, 1),
+                'binding_req_retx':   (4, 4),
+            },
+            expected_candidates=( {'host': 1}, {'host': 1} ) ) ),
+
     # TURN not configured: symmetric NAT requires relay; without it the connection must fail.
     # Connectivity checks to srflx candidates retransmit 4 times before giving up.
     ( 'TURN not configured (symmetric NAT)',
